@@ -1,0 +1,2034 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PulseTrack — Multi-User Fitness Tracker</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Chart.js for clean responsive charts -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+  <!-- Google Fonts: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              50: '#ecfdf5',
+              100: '#d1fae5',
+              400: '#34d399',
+              500: '#10b981',
+              600: '#059669',
+              900: '#064e3b',
+            },
+            slate: {
+              850: '#151e2e',
+              950: '#090d16',
+            }
+          }
+        }
+      }
+    };
+  </script>
+  <style>
+    /* Custom scrollbar and smooth transitions */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(148, 163, 184, 0.3);
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(148, 163, 184, 0.5);
+    }
+    .glass-card {
+      backdrop-filter: blur(12px);
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100 font-sans antialiased selection:bg-emerald-500 selection:text-white transition-colors duration-200">
+
+  <!-- Toast Container -->
+  <div id="toast-container" class="fixed top-4 right-4 z-50 flex flex-col gap-2 pointer-events-none max-w-sm w-full px-4 sm:px-0"></div>
+
+  <!-- Auth / Welcome Screen (Shown before user enters app or when switching profiles) -->
+  <div id="auth-screen" class="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-slate-100 via-slate-50 to-emerald-50 dark:from-slate-950 dark:via-slate-900 dark:to-emerald-950/30">
+    <div class="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl p-6 sm:p-8 space-y-6">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-11 h-11 rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center text-slate-950 shadow-lg shadow-emerald-500/25">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2.4" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+          </div>
+          <div>
+            <h1 class="text-xl font-extrabold tracking-tight">PulseTrack</h1>
+            <p class="text-xs text-slate-500 dark:text-slate-400 font-medium">Multi-User Fitness &amp; Performance</p>
+          </div>
+        </div>
+        <button id="auth-theme-toggle" type="button" aria-label="Toggle Theme" class="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition">
+          <svg class="w-5 h-5 hidden dark:block" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+          <svg class="w-5 h-5 block dark:hidden" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
+        </button>
+      </div>
+
+      <div class="space-y-2">
+        <h2 class="text-2xl font-bold tracking-tight">Ready to move?</h2>
+        <p class="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+          Track workouts, hydration, steps, and body metrics. Sign in with Google for persistent cloud sync across devices, or jump straight into Demo Mode.
+        </p>
+      </div>
+
+      <!-- Optional Display Name for Guest/Tester -->
+      <div class="space-y-1.5">
+        <label for="guest-name-input" class="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+          Tester / Athlete Name (Optional for Guest)
+        </label>
+        <input id="guest-name-input" type="text" placeholder="e.g. Alex Rivera" class="w-full px-4 py-3 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 transition" />
+      </div>
+
+      <div class="space-y-3 pt-1">
+        <!-- Guest / Instant Demo Button -->
+        <button id="btn-guest-login" type="button" class="w-full py-3.5 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-400 active:scale-[0.99] text-slate-950 font-bold text-sm shadow-lg shadow-emerald-500/25 flex items-center justify-center gap-2 transition cursor-pointer">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/><path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          <span>Launch Instant Demo / Guest Mode</span>
+        </button>
+
+        <div class="relative flex py-1 items-center">
+          <div class="flex-grow border-t border-slate-200 dark:border-slate-800"></div>
+          <span class="flex-shrink mx-3 text-xs font-medium text-slate-400">OR PERSISTENT ACCOUNT</span>
+          <div class="flex-grow border-t border-slate-200 dark:border-slate-800"></div>
+        </div>
+
+        <!-- Google Sign-In Button -->
+        <button id="btn-google-login" type="button" class="w-full py-3.5 px-4 rounded-xl bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-750 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-100 font-semibold text-sm flex items-center justify-center gap-3 transition cursor-pointer">
+          <svg class="w-5 h-5" viewBox="0 0 24 24">
+            <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17z"/>
+            <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.11-6.72-4.96H1.29v3.14C3.26 21.3 7.31 24 12 24z"/>
+            <path fill="#FBBC05" d="M5.28 14.24c-.24-.72-.38-1.49-.38-2.24s.14-1.52.38-2.24V6.62H1.29C.47 8.24 0 10.06 0 12s.47 3.76 1.29 5.38l3.99-3.14z"/>
+            <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.31 0 3.26 2.7 1.29 6.62l3.99 3.14c.95-2.85 3.6-4.96 6.72-4.96z"/>
+          </svg>
+          <span>Continue with Google</span>
+        </button>
+      </div>
+
+      <p id="auth-status-text" class="text-center text-xs text-slate-500 dark:text-slate-400">
+        Connecting to cloud services...
+      </p>
+    </div>
+  </div>
+
+  <!-- Main App Shell (Hidden until authenticated) -->
+  <div id="app-shell" class="hidden min-h-screen flex flex-col md:flex-row">
+
+    <!-- Desktop Sidebar Navigation -->
+    <aside class="hidden md:flex md:w-64 lg:w-72 md:flex-col md:fixed md:inset-y-0 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 z-30">
+      <!-- Brand Header -->
+      <div class="flex items-center justify-between px-6 py-5 border-b border-slate-200 dark:border-slate-800">
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center text-slate-950 shadow-md shadow-emerald-500/20">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+          </div>
+          <span class="text-lg font-extrabold tracking-tight">PulseTrack</span>
+        </div>
+        <span id="cloud-sync-badge" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+          <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+          Synced
+        </span>
+      </div>
+
+      <!-- Nav Links -->
+      <nav class="flex-1 px-4 py-6 space-y-1.5 overflow-y-auto">
+        <button data-nav="dashboard" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition cursor-pointer bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>
+          Dashboard
+        </button>
+        <button data-nav="workouts" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/70 transition cursor-pointer">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          Workouts &amp; Log
+        </button>
+        <button data-nav="progress" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/70 transition cursor-pointer">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"/></svg>
+          Body &amp; Progress
+        </button>
+        <button data-nav="goals" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/70 transition cursor-pointer">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+          Goals &amp; Settings
+        </button>
+      </nav>
+
+      <!-- Quick Log CTA in Sidebar -->
+      <div class="px-4 pb-4">
+        <button id="sidebar-quick-log" type="button" class="w-full py-3 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-sm shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2 transition cursor-pointer">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+          Log Workout
+        </button>
+      </div>
+
+      <!-- User Profile Footer -->
+      <div class="p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-900/60">
+        <div class="flex items-center gap-3">
+          <div id="sidebar-avatar" class="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-500 to-cyan-500 text-slate-950 font-extrabold text-sm flex items-center justify-center shrink-0 overflow-hidden">
+            AT
+          </div>
+          <div class="min-w-0 flex-1">
+            <p id="sidebar-user-name" class="text-sm font-bold truncate">Athlete</p>
+            <p id="sidebar-user-role" class="text-xs text-slate-500 dark:text-slate-400 truncate">Guest Tester</p>
+          </div>
+          <button id="btn-switch-user" type="button" title="Switch User / Sign Out" class="p-2 rounded-lg text-slate-500 hover:text-rose-500 hover:bg-slate-200/70 dark:hover:bg-slate-800 transition cursor-pointer">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+          </button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <div class="flex-1 md:pl-64 lg:pl-72 flex flex-col min-h-screen pb-24 md:pb-8">
+
+      <!-- Top Header Bar -->
+      <header class="sticky top-0 z-20 bg-white/80 dark:bg-slate-950/80 glass-card border-b border-slate-200 dark:border-slate-800 px-4 sm:px-6 lg:px-8 py-3.5">
+        <div class="max-w-6xl mx-auto flex items-center justify-between gap-3">
+          <div class="flex items-center gap-3">
+            <!-- Mobile Brand Icon -->
+            <div class="md:hidden w-9 h-9 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center text-slate-950">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+            </div>
+            <div>
+              <h1 id="page-title" class="text-lg sm:text-xl font-extrabold tracking-tight">Dashboard</h1>
+              <p id="header-date" class="text-xs text-slate-500 dark:text-slate-400">Today</p>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-2 sm:gap-3">
+            <!-- Quick Log Button (Header) -->
+            <button id="header-quick-log" type="button" class="py-2 px-3.5 sm:px-4 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs sm:text-sm shadow-md shadow-emerald-500/20 flex items-center gap-1.5 transition cursor-pointer">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+              <span>Log Workout</span>
+            </button>
+
+            <!-- Theme Toggle -->
+            <button id="main-theme-toggle" type="button" aria-label="Toggle Dark/Light Mode" class="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition cursor-pointer">
+              <svg class="w-5 h-5 hidden dark:block" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+              <svg class="w-5 h-5 block dark:hidden" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
+            </button>
+
+            <!-- Mobile User Switcher -->
+            <button id="mobile-profile-btn" type="button" title="Account & Switch User" class="md:hidden w-9 h-9 rounded-full bg-gradient-to-br from-emerald-500 to-cyan-500 text-slate-950 font-extrabold text-xs flex items-center justify-center overflow-hidden cursor-pointer">
+              AT
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <!-- Main Views Container -->
+      <main class="flex-1 px-4 sm:px-6 lg:px-8 py-6 max-w-6xl w-full mx-auto space-y-6">
+
+        <!-- Demo Banner (Shown when demo data is active) -->
+        <div id="demo-banner" class="hidden rounded-2xl bg-gradient-to-r from-emerald-500/15 via-teal-500/10 to-cyan-500/15 border border-emerald-500/30 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div class="flex items-start sm:items-center gap-3">
+            <span class="p-2 rounded-xl bg-emerald-500/20 text-emerald-500 shrink-0">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            </span>
+            <div>
+              <p class="text-sm font-bold text-slate-900 dark:text-white">Sample Athlete Data Loaded</p>
+              <p class="text-xs text-slate-600 dark:text-slate-300">You're exploring pre-populated workouts &amp; metrics. Add your own or reset anytime.</p>
+            </div>
+          </div>
+          <button id="btn-clear-demo" type="button" class="self-start sm:self-center px-3.5 py-2 rounded-xl bg-white dark:bg-slate-900 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-rose-600 dark:text-rose-400 border border-slate-200 dark:border-slate-700 text-xs font-bold transition cursor-pointer shrink-0">
+            Clear Demo Data
+          </button>
+        </div>
+
+        <!-- ==================== VIEW 1: DASHBOARD ==================== -->
+        <section id="view-dashboard" class="space-y-6">
+
+          <!-- Today's 4 Summary Cards -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <!-- Card 1: Steps -->
+            <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm flex flex-col justify-between gap-4">
+              <div class="flex items-start justify-between">
+                <div>
+                  <p class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Daily Steps</p>
+                  <div class="flex items-baseline gap-1.5 mt-1">
+                    <span id="stat-steps-val" class="text-2xl font-extrabold">0</span>
+                    <span id="stat-steps-goal" class="text-xs font-medium text-slate-400">/ 10,000</span>
+                  </div>
+                </div>
+                <div class="p-2.5 rounded-xl bg-emerald-500/10 text-emerald-500">
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
+                </div>
+              </div>
+              <div class="space-y-2">
+                <div class="w-full h-2 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+                  <div id="stat-steps-bar" class="h-full bg-emerald-500 rounded-full transition-all duration-500" style="width: 0%"></div>
+                </div>
+                <div class="flex items-center justify-between gap-2 pt-0.5">
+                  <button data-add-steps="1000" class="quick-step-btn flex-1 py-1.5 px-2 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-emerald-500/15 hover:text-emerald-500 text-xs font-semibold transition cursor-pointer">+1,000</button>
+                  <button data-add-steps="2500" class="quick-step-btn flex-1 py-1.5 px-2 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-emerald-500/15 hover:text-emerald-500 text-xs font-semibold transition cursor-pointer">+2,500</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Card 2: Active Calories -->
+            <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm flex flex-col justify-between gap-4">
+              <div class="flex items-start justify-between">
+                <div>
+                  <p class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Active Calories</p>
+                  <div class="flex items-baseline gap-1.5 mt-1">
+                    <span id="stat-cal-val" class="text-2xl font-extrabold">0</span>
+                    <span id="stat-cal-goal" class="text-xs font-medium text-slate-400">/ 600 kcal</span>
+                  </div>
+                </div>
+                <div class="p-2.5 rounded-xl bg-orange-500/10 text-orange-500">
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z"/></svg>
+                </div>
+              </div>
+              <div class="space-y-2">
+                <div class="w-full h-2 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+                  <div id="stat-cal-bar" class="h-full bg-orange-500 rounded-full transition-all duration-500" style="width: 0%"></div>
+                </div>
+                <p id="stat-cal-sub" class="text-xs text-slate-500 dark:text-slate-400">From today's logged workouts</p>
+              </div>
+            </div>
+
+            <!-- Card 3: Workout Minutes -->
+            <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm flex flex-col justify-between gap-4">
+              <div class="flex items-start justify-between">
+                <div>
+                  <p class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Active Minutes</p>
+                  <div class="flex items-baseline gap-1.5 mt-1">
+                    <span id="stat-min-val" class="text-2xl font-extrabold">0</span>
+                    <span class="text-xs font-medium text-slate-400">mins today</span>
+                  </div>
+                </div>
+                <div class="p-2.5 rounded-xl bg-sky-500/10 text-sky-500">
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                </div>
+              </div>
+              <div class="space-y-2">
+                <div class="w-full h-2 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+                  <div id="stat-min-bar" class="h-full bg-sky-500 rounded-full transition-all duration-500" style="width: 0%"></div>
+                </div>
+                <p id="stat-weekly-count" class="text-xs text-slate-500 dark:text-slate-400">0 / 5 weekly workouts</p>
+              </div>
+            </div>
+
+            <!-- Card 4: Water Intake -->
+            <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm flex flex-col justify-between gap-4">
+              <div class="flex items-start justify-between">
+                <div>
+                  <p class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Water Intake</p>
+                  <div class="flex items-baseline gap-1.5 mt-1">
+                    <span id="stat-water-val" class="text-2xl font-extrabold">0</span>
+                    <span id="stat-water-goal" class="text-xs font-medium text-slate-400">/ 2,500 ml</span>
+                  </div>
+                </div>
+                <div class="p-2.5 rounded-xl bg-cyan-500/10 text-cyan-500">
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>
+                </div>
+              </div>
+              <div class="space-y-2">
+                <div class="w-full h-2 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+                  <div id="stat-water-bar" class="h-full bg-cyan-500 rounded-full transition-all duration-500" style="width: 0%"></div>
+                </div>
+                <div class="flex items-center justify-between gap-2 pt-0.5">
+                  <button data-add-water="250" class="quick-water-btn flex-1 py-1.5 px-2 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-cyan-500/15 hover:text-cyan-500 text-xs font-semibold transition cursor-pointer">+250ml</button>
+                  <button data-add-water="500" class="quick-water-btn flex-1 py-1.5 px-2 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-cyan-500/15 hover:text-cyan-500 text-xs font-semibold transition cursor-pointer">+500ml</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Chart + Streaks & PRs Row -->
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Weekly Activity Chart -->
+            <div class="lg:col-span-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 sm:p-6 shadow-sm flex flex-col justify-between">
+              <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+                <div>
+                  <h2 class="text-base font-bold">7-Day Activity Overview</h2>
+                  <p class="text-xs text-slate-500 dark:text-slate-400">Your performance trend over the past week</p>
+                </div>
+                <div class="inline-flex p-1 rounded-xl bg-slate-100 dark:bg-slate-800 self-start">
+                  <button id="chart-mode-calories" type="button" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm transition cursor-pointer">Calories (kcal)</button>
+                  <button id="chart-mode-minutes" type="button" class="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-500 dark:text-slate-400 transition cursor-pointer">Duration (mins)</button>
+                </div>
+              </div>
+              <div class="relative w-full h-64">
+                <canvas id="weekly-activity-chart"></canvas>
+              </div>
+            </div>
+
+            <!-- Streaks & Personal Records -->
+            <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 sm:p-6 shadow-sm flex flex-col justify-between gap-5">
+              <div>
+                <h2 class="text-base font-bold">Streaks &amp; Milestones</h2>
+                <p class="text-xs text-slate-500 dark:text-slate-400">Consistency &amp; personal bests</p>
+              </div>
+
+              <!-- Active Streak Highlight -->
+              <div class="p-4 rounded-2xl bg-gradient-to-br from-emerald-500/15 to-teal-500/5 border border-emerald-500/25 flex items-center gap-4">
+                <div class="w-12 h-12 rounded-2xl bg-emerald-500 text-slate-950 flex items-center justify-center font-extrabold text-xl shrink-0 shadow-md shadow-emerald-500/20">
+                  🔥
+                </div>
+                <div>
+                  <p class="text-xs font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">Current Streak</p>
+                  <p id="streak-days-text" class="text-2xl font-extrabold">0 Days</p>
+                  <p class="text-xs text-slate-500 dark:text-slate-400">Keep logging daily to grow it!</p>
+                </div>
+              </div>
+
+              <!-- PR Badges -->
+              <div class="space-y-3">
+                <div class="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60">
+                  <div class="flex items-center gap-3">
+                    <span class="text-lg">⚡</span>
+                    <div>
+                      <p class="text-xs font-semibold text-slate-500 dark:text-slate-400">Max Calorie Burn</p>
+                      <p id="pr-max-calories" class="text-sm font-bold">0 kcal</p>
+                    </div>
+                  </div>
+                  <span class="text-[11px] font-bold px-2 py-0.5 rounded-md bg-orange-500/10 text-orange-500">PR</span>
+                </div>
+
+                <div class="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60">
+                  <div class="flex items-center gap-3">
+                    <span class="text-lg">⏱️</span>
+                    <div>
+                      <p class="text-xs font-semibold text-slate-500 dark:text-slate-400">Longest Session</p>
+                      <p id="pr-longest-session" class="text-sm font-bold">0 mins</p>
+                    </div>
+                  </div>
+                  <span class="text-[11px] font-bold px-2 py-0.5 rounded-md bg-sky-500/10 text-sky-500">PR</span>
+                </div>
+
+                <div class="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60">
+                  <div class="flex items-center gap-3">
+                    <span class="text-lg">🏆</span>
+                    <div>
+                      <p class="text-xs font-semibold text-slate-500 dark:text-slate-400">Total Workouts</p>
+                      <p id="pr-total-workouts" class="text-sm font-bold">0 sessions</p>
+                    </div>
+                  </div>
+                  <span class="text-[11px] font-bold px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-500">ALL TIME</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Recent Workouts Preview -->
+          <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 sm:p-6 shadow-sm">
+            <div class="flex items-center justify-between mb-4">
+              <div>
+                <h2 class="text-base font-bold">Recent Workouts</h2>
+                <p class="text-xs text-slate-500 dark:text-slate-400">Your latest logged training sessions</p>
+              </div>
+              <button data-nav="workouts" class="nav-jump-btn text-xs font-bold text-emerald-500 hover:text-emerald-400 flex items-center gap-1 cursor-pointer">
+                View All
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+              </button>
+            </div>
+            <div id="dashboard-recent-list" class="divide-y divide-slate-100 dark:divide-slate-800">
+              <!-- Populated dynamically -->
+            </div>
+          </div>
+        </section>
+
+        <!-- ==================== VIEW 2: WORKOUTS & LOG ==================== -->
+        <section id="view-workouts" class="hidden space-y-6">
+          <!-- Filters & Search Header -->
+          <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 sm:p-5 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div class="relative flex-1">
+              <svg class="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+              <input id="workout-search" type="text" placeholder="Search workouts by type or notes..." class="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 border border-transparent focus:border-emerald-500 text-sm focus:outline-none transition" />
+            </div>
+
+            <div class="flex flex-wrap items-center gap-2">
+              <select id="workout-filter-type" class="px-3.5 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                <option value="ALL">All Types</option>
+                <option value="Running">Running</option>
+                <option value="Weightlifting">Weightlifting</option>
+                <option value="Cycling">Cycling</option>
+                <option value="Yoga">Yoga</option>
+                <option value="HIIT">HIIT</option>
+                <option value="Swimming">Swimming</option>
+                <option value="Walking">Walking</option>
+                <option value="Other">Other</option>
+              </select>
+
+              <select id="workout-filter-intensity" class="px-3.5 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                <option value="ALL">All Intensities</option>
+                <option value="Low">Low</option>
+                <option value="Moderate">Moderate</option>
+                <option value="High">High</option>
+              </select>
+
+              <button id="workouts-page-add-btn" type="button" class="px-4 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-sm flex items-center gap-1.5 transition cursor-pointer">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+                <span>Add Workout</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Workout History List -->
+          <div id="workout-history-list" class="space-y-3">
+            <!-- Populated dynamically -->
+          </div>
+        </section>
+
+        <!-- ==================== VIEW 3: BODY & PROGRESS ==================== -->
+        <section id="view-progress" class="hidden space-y-6">
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Log Body Measurement Form -->
+            <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 sm:p-6 shadow-sm space-y-4">
+              <div>
+                <h2 class="text-base font-bold">Log Body Metrics</h2>
+                <p class="text-xs text-slate-500 dark:text-slate-400">Record weight &amp; body fat to track trends</p>
+              </div>
+
+              <form id="body-metric-form" class="space-y-4">
+                <div>
+                  <label for="metric-date" class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Date</label>
+                  <input id="metric-date" type="date" required class="w-full px-3.5 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                  <div>
+                    <label for="metric-weight" class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Weight (kg)</label>
+                    <input id="metric-weight" type="number" step="0.1" min="20" max="350" placeholder="72.5" required class="w-full px-3.5 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+                  </div>
+                  <div>
+                    <label for="metric-bodyfat" class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Body Fat % (Opt)</label>
+                    <input id="metric-bodyfat" type="number" step="0.1" min="2" max="70" placeholder="16.5" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+                  </div>
+                </div>
+
+                <div>
+                  <label for="metric-waist" class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Waist (cm, Optional)</label>
+                  <input id="metric-waist" type="number" step="0.5" min="30" max="250" placeholder="80" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+                </div>
+
+                <button type="submit" class="w-full py-3 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-sm shadow-md shadow-emerald-500/20 transition cursor-pointer">
+                  Save Entry
+                </button>
+              </form>
+            </div>
+
+            <!-- Weight Trend Chart -->
+            <div class="lg:col-span-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 sm:p-6 shadow-sm flex flex-col justify-between">
+              <div class="flex items-center justify-between mb-4">
+                <div>
+                  <h2 class="text-base font-bold">Body Weight Trend (kg)</h2>
+                  <p class="text-xs text-slate-500 dark:text-slate-400">Progress over recorded check-ins</p>
+                </div>
+                <div id="latest-weight-badge" class="px-3 py-1.5 rounded-xl bg-emerald-500/10 text-emerald-500 text-xs font-bold">
+                  Latest: —
+                </div>
+              </div>
+              <div class="relative w-full h-64">
+                <canvas id="weight-trend-chart"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <!-- Body Measurements History Table -->
+          <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 sm:p-6 shadow-sm">
+            <h2 class="text-base font-bold mb-4">Measurement History</h2>
+            <div class="overflow-x-auto">
+              <table class="w-full text-left border-collapse">
+                <thead>
+                  <tr class="border-b border-slate-200 dark:border-slate-800 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                    <th class="py-3 px-3">Date</th>
+                    <th class="py-3 px-3">Weight</th>
+                    <th class="py-3 px-3">Body Fat</th>
+                    <th class="py-3 px-3">Waist</th>
+                    <th class="py-3 px-3 text-right">Action</th>
+                  </tr>
+                </thead>
+                <tbody id="body-metrics-table-body" class="divide-y divide-slate-100 dark:divide-slate-800 text-sm">
+                  <!-- Populated dynamically -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==================== VIEW 4: GOALS & SETTINGS ==================== -->
+        <section id="view-goals" class="hidden space-y-6">
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- Daily & Weekly Targets -->
+            <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 sm:p-6 shadow-sm space-y-5">
+              <div>
+                <h2 class="text-base font-bold">Fitness Targets &amp; Daily Goals</h2>
+                <p class="text-xs text-slate-500 dark:text-slate-400">Customize your daily rings and weekly targets</p>
+              </div>
+
+              <form id="goals-form" class="space-y-4">
+                <div>
+                  <label for="goal-steps" class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Daily Steps Goal</label>
+                  <input id="goal-steps" type="number" min="1000" max="100000" step="500" required class="w-full px-4 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+                </div>
+
+                <div>
+                  <label for="goal-calories" class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Daily Active Calories Goal (kcal)</label>
+                  <input id="goal-calories" type="number" min="100" max="10000" step="50" required class="w-full px-4 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+                </div>
+
+                <div>
+                  <label for="goal-water" class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Daily Water Intake Goal (ml)</label>
+                  <input id="goal-water" type="number" min="500" max="10000" step="250" required class="w-full px-4 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+                </div>
+
+                <div>
+                  <label for="goal-weekly-workouts" class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Weekly Workouts Target</label>
+                  <input id="goal-weekly-workouts" type="number" min="1" max="21" step="1" required class="w-full px-4 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+                </div>
+
+                <button type="submit" class="w-full py-3 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-sm shadow-md shadow-emerald-500/20 transition cursor-pointer">
+                  Save Fitness Goals
+                </button>
+              </form>
+            </div>
+
+            <!-- Profile & Tester Management -->
+            <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 sm:p-6 shadow-sm flex flex-col justify-between gap-6">
+              <div class="space-y-4">
+                <div>
+                  <h2 class="text-base font-bold">Profile &amp; Multi-User Testing</h2>
+                  <p class="text-xs text-slate-500 dark:text-slate-400">Your profile ID isolates your data in the cloud</p>
+                </div>
+
+                <div class="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700 space-y-3">
+                  <div class="flex items-center gap-3">
+                    <div id="settings-avatar" class="w-12 h-12 rounded-full bg-gradient-to-br from-emerald-500 to-cyan-500 text-slate-950 font-extrabold text-base flex items-center justify-center overflow-hidden">
+                      AT
+                    </div>
+                    <div>
+                      <p id="settings-user-name" class="text-base font-bold">Athlete</p>
+                      <p id="settings-user-email" class="text-xs text-slate-500 dark:text-slate-400">Guest Session</p>
+                    </div>
+                  </div>
+                  <div class="pt-2 border-t border-slate-200 dark:border-slate-700">
+                    <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Unique Cloud User ID</p>
+                    <p id="settings-user-id" class="text-xs font-mono text-slate-600 dark:text-slate-300 break-all mt-0.5">—</p>
+                  </div>
+                </div>
+
+                <div class="space-y-2.5 pt-2">
+                  <button id="btn-load-sample-again" type="button" class="w-full py-2.5 px-4 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-sm font-semibold transition cursor-pointer">
+                    Populate Sample Demo Data
+                  </button>
+                  <button id="btn-reset-today" type="button" class="w-full py-2.5 px-4 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-sm font-semibold transition cursor-pointer">
+                    Reset Today's Steps &amp; Water
+                  </button>
+                </div>
+              </div>
+
+              <button id="settings-signout-btn" type="button" class="w-full py-3 px-4 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 font-bold text-sm transition cursor-pointer">
+                Switch User / Sign Out
+              </button>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <!-- Mobile Bottom Navigation Bar -->
+    <nav class="md:hidden fixed bottom-0 inset-x-0 z-30 bg-white/95 dark:bg-slate-900/95 glass-card border-t border-slate-200 dark:border-slate-800 px-2 py-2">
+      <div class="grid grid-cols-4 gap-1">
+        <button data-nav="dashboard" class="nav-btn flex flex-col items-center justify-center py-1.5 rounded-xl text-emerald-500 font-bold text-[11px] gap-1 cursor-pointer">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>
+          <span>Home</span>
+        </button>
+        <button data-nav="workouts" class="nav-btn flex flex-col items-center justify-center py-1.5 rounded-xl text-slate-500 dark:text-slate-400 font-semibold text-[11px] gap-1 cursor-pointer">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          <span>Workouts</span>
+        </button>
+        <button data-nav="progress" class="nav-btn flex flex-col items-center justify-center py-1.5 rounded-xl text-slate-500 dark:text-slate-400 font-semibold text-[11px] gap-1 cursor-pointer">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"/></svg>
+          <span>Progress</span>
+        </button>
+        <button data-nav="goals" class="nav-btn flex flex-col items-center justify-center py-1.5 rounded-xl text-slate-500 dark:text-slate-400 font-semibold text-[11px] gap-1 cursor-pointer">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+          <span>Goals</span>
+        </button>
+      </div>
+    </nav>
+  </div>
+
+  <!-- ==================== MODAL: ADD / EDIT WORKOUT ==================== -->
+  <div id="workout-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm">
+    <div class="w-full max-w-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl overflow-hidden">
+      <div class="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-800">
+        <h3 id="workout-modal-title" class="text-lg font-extrabold">Log Workout</h3>
+        <button id="close-workout-modal" type="button" class="p-2 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <form id="workout-form" class="p-6 space-y-4">
+        <input type="hidden" id="workout-edit-id" value="" />
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label for="wf-type" class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Workout Type</label>
+            <select id="wf-type" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500">
+              <option value="Running">🏃 Running</option>
+              <option value="Weightlifting">🏋️ Weightlifting</option>
+              <option value="Cycling">🚴 Cycling</option>
+              <option value="Yoga">🧘 Yoga</option>
+              <option value="HIIT">⚡ HIIT</option>
+              <option value="Swimming">🏊 Swimming</option>
+              <option value="Walking">🚶 Walking</option>
+              <option value="Other">🎯 Other</option>
+            </select>
+          </div>
+
+          <div>
+            <label for="wf-date" class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Date</label>
+            <input id="wf-date" type="date" required class="w-full px-3.5 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label for="wf-duration" class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Duration (minutes)</label>
+            <input id="wf-duration" type="number" min="1" max="600" value="45" required class="w-full px-3.5 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+          </div>
+
+          <div>
+            <div class="flex items-center justify-between mb-1">
+              <label for="wf-calories" class="block text-xs font-semibold text-slate-500 dark:text-slate-400">Calories Burned</label>
+              <span class="text-[10px] font-semibold text-emerald-500">Auto-estimated</span>
+            </div>
+            <input id="wf-calories" type="number" min="1" max="10000" value="450" required class="w-full px-3.5 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5">Intensity Level</label>
+          <div class="grid grid-cols-3 gap-2">
+            <label class="cursor-pointer">
+              <input type="radio" name="wf-intensity" value="Low" class="peer sr-only" />
+              <div class="text-center py-2 px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-semibold peer-checked:border-emerald-500 peer-checked:bg-emerald-500/15 peer-checked:text-emerald-500 transition">
+                Low
+              </div>
+            </label>
+            <label class="cursor-pointer">
+              <input type="radio" name="wf-intensity" value="Moderate" checked class="peer sr-only" />
+              <div class="text-center py-2 px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-semibold peer-checked:border-emerald-500 peer-checked:bg-emerald-500/15 peer-checked:text-emerald-500 transition">
+                Moderate
+              </div>
+            </label>
+            <label class="cursor-pointer">
+              <input type="radio" name="wf-intensity" value="High" class="peer sr-only" />
+              <div class="text-center py-2 px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-semibold peer-checked:border-emerald-500 peer-checked:bg-emerald-500/15 peer-checked:text-emerald-500 transition">
+                High
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <div>
+          <label for="wf-notes" class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Notes &amp; Highlights (Optional)</label>
+          <textarea id="wf-notes" rows="2" placeholder="e.g. 5K tempo run around the park, felt strong!" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"></textarea>
+        </div>
+
+        <div class="flex items-center justify-end gap-3 pt-2">
+          <button id="cancel-workout-modal" type="button" class="px-4 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-sm font-semibold transition cursor-pointer">
+            Cancel
+          </button>
+          <button type="submit" class="px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-sm shadow-md shadow-emerald-500/20 transition cursor-pointer">
+            Save Workout
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL: CONFIRMATION DIALOG ==================== -->
+  <div id="confirm-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm">
+    <div class="w-full max-w-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl p-6 space-y-4">
+      <h3 id="confirm-title" class="text-lg font-extrabold">Confirm Action</h3>
+      <p id="confirm-message" class="text-sm text-slate-600 dark:text-slate-400">Are you sure you want to proceed?</p>
+      <div class="flex items-center justify-end gap-3 pt-2">
+        <button id="confirm-cancel-btn" type="button" class="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-sm font-semibold transition cursor-pointer">
+          Cancel
+        </button>
+        <button id="confirm-ok-btn" type="button" class="px-4 py-2 rounded-xl bg-rose-500 hover:bg-rose-400 text-white font-bold text-sm transition cursor-pointer">
+          Confirm
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Firebase & Application Logic -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+    import {
+      getAuth,
+      signInAnonymously,
+      signInWithCustomToken,
+      GoogleAuthProvider,
+      signInWithPopup,
+      signOut,
+      onAuthStateChanged,
+      updateProfile
+    } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import {
+      getFirestore,
+      doc,
+      setDoc,
+      getDoc,
+      addDoc,
+      updateDoc,
+      deleteDoc,
+      collection,
+      onSnapshot,
+      writeBatch
+    } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+    // =========================================================================
+    // 1. FIREBASE CONFIGURATION & INITIALIZATION
+    // =========================================================================
+    const appId = typeof __app_id !== 'undefined' ? __app_id : 'pulsetrack-fitness-app';
+    let firebaseConfig = null;
+    try {
+      if (typeof __firebase_config !== 'undefined' && __firebase_config) {
+        firebaseConfig = JSON.parse(__firebase_config);
+      }
+    } catch (e) {
+      console.warn("Firebase config parse warning:", e);
+    }
+
+    let app = null;
+    let auth = null;
+    let db = null;
+    let useMemoryFallback = false;
+
+    if (firebaseConfig && firebaseConfig.apiKey) {
+      try {
+        app = initializeApp(firebaseConfig);
+        auth = getAuth(app);
+        db = getFirestore(app);
+      } catch (err) {
+        console.error("Firebase init error, using in-memory fallback:", err);
+        useMemoryFallback = true;
+      }
+    } else {
+      useMemoryFallback = true;
+    }
+
+    // =========================================================================
+    // 2. APPLICATION STATE & HELPERS
+    // =========================================================================
+    const getLocalDateStr = (dateObj = new Date()) => {
+      const year = dateObj.getFullYear();
+      const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+      const day = String(dateObj.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    };
+
+    const getDaysAgoStr = (daysAgo) => {
+      const d = new Date();
+      d.setDate(d.getDate() - daysAgo);
+      return getLocalDateStr(d);
+    };
+
+    const WORKOUT_ICONS = {
+      Running: '🏃',
+      Weightlifting: '🏋️',
+      Cycling: '🚴',
+      Yoga: '🧘',
+      HIIT: '⚡',
+      Swimming: '🏊',
+      Walking: '🚶',
+      Other: '🎯'
+    };
+
+    // Calories per minute baseline by workout type
+    const CALORIES_PER_MIN = {
+      Running: 10.5,
+      Weightlifting: 6.5,
+      Cycling: 8.5,
+      Yoga: 3.5,
+      HIIT: 12.0,
+      Swimming: 9.5,
+      Walking: 4.2,
+      Other: 6.0
+    };
+
+    const INTENSITY_MULTIPLIER = {
+      Low: 0.8,
+      Moderate: 1.0,
+      High: 1.25
+    };
+
+    const state = {
+      user: null,
+      profileName: 'Athlete',
+      isGuest: true,
+      activeNav: 'dashboard',
+      chartMetric: 'calories', // 'calories' | 'minutes'
+      goals: {
+        dailySteps: 10000,
+        dailyCalories: 600,
+        dailyWater: 2500,
+        weeklyWorkouts: 5
+      },
+      dailyLog: {
+        date: getLocalDateStr(),
+        steps: 0,
+        waterMl: 0
+      },
+      workouts: [],
+      bodyMetrics: [],
+      hasDemoData: false,
+      unsubscribers: [],
+      charts: {
+        weekly: null,
+        weight: null
+      }
+    };
+
+    // =========================================================================
+    // 3. UI UTILITIES (TOASTS, CONFIRM MODAL, THEME)
+    // =========================================================================
+    function showToast(message, type = 'success') {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      const colors = type === 'error'
+        ? 'bg-rose-600 text-white border-rose-500'
+        : type === 'info'
+        ? 'bg-slate-800 text-white border-slate-700'
+        : 'bg-emerald-500 text-slate-950 border-emerald-400';
+
+      toast.className = `${colors} border px-4 py-3 rounded-2xl shadow-xl font-semibold text-sm flex items-center justify-between gap-3 pointer-events-auto transform transition-all duration-300 translate-y-0 opacity-100`;
+      toast.innerHTML = `<span>${message}</span>`;
+      container.appendChild(toast);
+
+      setTimeout(() => {
+        toast.classList.add('opacity-0', '-translate-y-2');
+        setTimeout(() => toast.remove(), 300);
+      }, 3000);
+    }
+
+    function showConfirm(title, message) {
+      return new Promise((resolve) => {
+        const modal = document.getElementById('confirm-modal');
+        document.getElementById('confirm-title').textContent = title;
+        document.getElementById('confirm-message').textContent = message;
+        modal.classList.remove('hidden');
+
+        const okBtn = document.getElementById('confirm-ok-btn');
+        const cancelBtn = document.getElementById('confirm-cancel-btn');
+
+        const cleanup = (result) => {
+          modal.classList.add('hidden');
+          okBtn.removeEventListener('click', onOk);
+          cancelBtn.removeEventListener('click', onCancel);
+          resolve(result);
+        };
+
+        const onOk = () => cleanup(true);
+        const onCancel = () => cleanup(false);
+
+        okBtn.addEventListener('click', onOk);
+        cancelBtn.addEventListener('click', onCancel);
+      });
+    }
+
+    function toggleTheme() {
+      const html = document.documentElement;
+      html.classList.toggle('dark');
+      updateChartsTheme();
+    }
+
+    document.getElementById('auth-theme-toggle').addEventListener('click', toggleTheme);
+    document.getElementById('main-theme-toggle').addEventListener('click', toggleTheme);
+
+    // =========================================================================
+    // 4. SAMPLE DEMO DATA GENERATOR FOR NEW / GUEST TESTERS
+    // =========================================================================
+    function generateSampleData() {
+      const sampleWorkouts = [
+        {
+          type: 'Running',
+          date: getDaysAgoStr(0),
+          duration: 38,
+          calories: 410,
+          intensity: 'High',
+          notes: 'Morning 6K tempo run along the waterfront',
+          isDemo: true,
+          createdAt: Date.now() - 3600000
+        },
+        {
+          type: 'Weightlifting',
+          date: getDaysAgoStr(1),
+          duration: 55,
+          calories: 360,
+          intensity: 'Moderate',
+          notes: 'Upper body hypertrophy & core circuit',
+          isDemo: true,
+          createdAt: Date.now() - 86400000
+        },
+        {
+          type: 'HIIT',
+          date: getDaysAgoStr(2),
+          duration: 30,
+          calories: 390,
+          intensity: 'High',
+          notes: 'Kettlebell swings, burpees & sprint intervals',
+          isDemo: true,
+          createdAt: Date.now() - 86400000 * 2
+        },
+        {
+          type: 'Cycling',
+          date: getDaysAgoStr(4),
+          duration: 60,
+          calories: 510,
+          intensity: 'Moderate',
+          notes: 'Endurance road ride — 24 km',
+          isDemo: true,
+          createdAt: Date.now() - 86400000 * 4
+        },
+        {
+          type: 'Yoga',
+          date: getDaysAgoStr(5),
+          duration: 40,
+          calories: 140,
+          intensity: 'Low',
+          notes: 'Mobility flow & recovery stretching',
+          isDemo: true,
+          createdAt: Date.now() - 86400000 * 5
+        }
+      ];
+
+      const sampleMetrics = [
+        { date: getDaysAgoStr(21), weight: 75.4, bodyFat: 18.2, waist: 83.0, isDemo: true },
+        { date: getDaysAgoStr(14), weight: 74.8, bodyFat: 17.8, waist: 82.0, isDemo: true },
+        { date: getDaysAgoStr(7), weight: 74.1, bodyFat: 17.3, waist: 81.5, isDemo: true },
+        { date: getDaysAgoStr(0), weight: 73.6, bodyFat: 16.9, waist: 80.5, isDemo: true }
+      ];
+
+      return { sampleWorkouts, sampleMetrics };
+    }
+
+    async function seedDemoDataIfNew(uid) {
+      const { sampleWorkouts, sampleMetrics } = generateSampleData();
+
+      if (useMemoryFallback || !db) {
+        state.dailyLog = { date: getLocalDateStr(), steps: 6450, waterMl: 1500 };
+        state.workouts = sampleWorkouts.map((w, idx) => ({ id: `demo-w-${idx}`, ...w }));
+        state.bodyMetrics = sampleMetrics.map((m, idx) => ({ id: `demo-m-${idx}`, ...m }));
+        state.hasDemoData = true;
+        renderAll();
+        return;
+      }
+
+      try {
+        const profileRef = doc(db, 'artifacts', appId, 'users', uid, 'settings', 'profile');
+        const profileSnap = await getDoc(profileRef);
+
+        if (!profileSnap.exists()) {
+          // Brand new user -> seed demo data so testers immediately see a populated dashboard
+          await setDoc(profileRef, {
+            displayName: state.profileName,
+            goals: state.goals,
+            initialized: true,
+            createdAt: Date.now()
+          });
+
+          const todayStr = getLocalDateStr();
+          const dailyRef = doc(db, 'artifacts', appId, 'users', uid, 'dailyLogs', todayStr);
+          await setDoc(dailyRef, {
+            date: todayStr,
+            steps: 6450,
+            waterMl: 1500
+          });
+
+          const workoutsCol = collection(db, 'artifacts', appId, 'users', uid, 'workouts');
+          for (const w of sampleWorkouts) {
+            await addDoc(workoutsCol, w);
+          }
+
+          const metricsCol = collection(db, 'artifacts', appId, 'users', uid, 'bodyMetrics');
+          for (const m of sampleMetrics) {
+            await addDoc(metricsCol, m);
+          }
+        }
+      } catch (err) {
+        console.error("Error seeding demo data:", err);
+      }
+    }
+
+    // =========================================================================
+    // 5. FIRESTORE REAL-TIME LISTENERS & CRUD OPERATIONS
+    // =========================================================================
+    function clearListeners() {
+      state.unsubscribers.forEach((unsub) => {
+        try { unsub(); } catch (e) {}
+      });
+      state.unsubscribers = [];
+    }
+
+    function attachFirestoreListeners(uid) {
+      clearListeners();
+      if (useMemoryFallback || !db) {
+        renderAll();
+        return;
+      }
+
+      // 1. Profile & Goals listener
+      const profileRef = doc(db, 'artifacts', appId, 'users', uid, 'settings', 'profile');
+      const unsubProfile = onSnapshot(profileRef, (snap) => {
+        if (snap.exists()) {
+          const data = snap.data();
+          if (data.goals) {
+            state.goals = { ...state.goals, ...data.goals };
+          }
+          if (data.displayName && state.isGuest) {
+            state.profileName = data.displayName;
+            updateUserUI();
+          }
+        }
+        renderGoalsForm();
+        renderDashboard();
+      }, (err) => console.error("Profile snapshot error:", err));
+
+      // 2. Today's Daily Log listener (steps & water)
+      const todayStr = getLocalDateStr();
+      const dailyRef = doc(db, 'artifacts', appId, 'users', uid, 'dailyLogs', todayStr);
+      const unsubDaily = onSnapshot(dailyRef, (snap) => {
+        if (snap.exists()) {
+          state.dailyLog = snap.data();
+        } else {
+          state.dailyLog = { date: todayStr, steps: 0, waterMl: 0 };
+        }
+        renderDashboard();
+      }, (err) => console.error("Daily log snapshot error:", err));
+
+      // 3. Workouts Collection listener (No compound queries per Rule 2; sort in JS)
+      const workoutsCol = collection(db, 'artifacts', appId, 'users', uid, 'workouts');
+      const unsubWorkouts = onSnapshot(workoutsCol, (snap) => {
+        const items = [];
+        snap.forEach((docSnap) => {
+          items.push({ id: docSnap.id, ...docSnap.data() });
+        });
+        // Sort newest date first
+        items.sort((a, b) => {
+          if (b.date !== a.date) return b.date.localeCompare(a.date);
+          return (b.createdAt || 0) - (a.createdAt || 0);
+        });
+        state.workouts = items;
+        state.hasDemoData = items.some((w) => w.isDemo === true) || state.bodyMetrics.some((m) => m.isDemo === true);
+        renderAll();
+      }, (err) => console.error("Workouts snapshot error:", err));
+
+      // 4. Body Metrics Collection listener
+      const metricsCol = collection(db, 'artifacts', appId, 'users', uid, 'bodyMetrics');
+      const unsubMetrics = onSnapshot(metricsCol, (snap) => {
+        const items = [];
+        snap.forEach((docSnap) => {
+          items.push({ id: docSnap.id, ...docSnap.data() });
+        });
+        items.sort((a, b) => a.date.localeCompare(b.date));
+        state.bodyMetrics = items;
+        state.hasDemoData = items.some((m) => m.isDemo === true) || state.workouts.some((w) => w.isDemo === true);
+        renderProgressView();
+        renderDashboard();
+      }, (err) => console.error("Metrics snapshot error:", err));
+
+      state.unsubscribers.push(unsubProfile, unsubDaily, unsubWorkouts, unsubMetrics);
+    }
+
+    // CRUD: Update Steps or Water
+    async function incrementDailyMetric(field, amount) {
+      const todayStr = getLocalDateStr();
+      const newVal = Math.max(0, (state.dailyLog[field] || 0) + amount);
+      state.dailyLog = { ...state.dailyLog, date: todayStr, [field]: newVal };
+      renderDashboard();
+
+      if (useMemoryFallback || !db || !state.user) return;
+      try {
+        const dailyRef = doc(db, 'artifacts', appId, 'users', state.user.uid, 'dailyLogs', todayStr);
+        await setDoc(dailyRef, state.dailyLog, { merge: true });
+      } catch (err) {
+        console.error("Error updating daily metric:", err);
+      }
+    }
+
+    // CRUD: Save Workout (Add or Edit)
+    async function saveWorkout(workoutData, editId = '') {
+      if (useMemoryFallback || !db || !state.user) {
+        if (editId) {
+          state.workouts = state.workouts.map((w) => (w.id === editId ? { ...w, ...workoutData } : w));
+        } else {
+          state.workouts.unshift({ id: `w-${Date.now()}`, ...workoutData, createdAt: Date.now() });
+        }
+        renderAll();
+        return;
+      }
+
+      const uid = state.user.uid;
+      if (editId) {
+        const wRef = doc(db, 'artifacts', appId, 'users', uid, 'workouts', editId);
+        await updateDoc(wRef, workoutData);
+      } else {
+        const wCol = collection(db, 'artifacts', appId, 'users', uid, 'workouts');
+        await addDoc(wCol, { ...workoutData, createdAt: Date.now() });
+      }
+    }
+
+    // CRUD: Delete Workout
+    async function deleteWorkout(workoutId) {
+      if (useMemoryFallback || !db || !state.user) {
+        state.workouts = state.workouts.filter((w) => w.id !== workoutId);
+        renderAll();
+        return;
+      }
+      const wRef = doc(db, 'artifacts', appId, 'users', state.user.uid, 'workouts', workoutId);
+      await deleteDoc(wRef);
+    }
+
+    // CRUD: Save Body Metric
+    async function saveBodyMetric(metricData) {
+      if (useMemoryFallback || !db || !state.user) {
+        state.bodyMetrics.push({ id: `m-${Date.now()}`, ...metricData });
+        state.bodyMetrics.sort((a, b) => a.date.localeCompare(b.date));
+        renderProgressView();
+        return;
+      }
+      const mCol = collection(db, 'artifacts', appId, 'users', state.user.uid, 'bodyMetrics');
+      await addDoc(mCol, metricData);
+    }
+
+    // CRUD: Delete Body Metric
+    async function deleteBodyMetric(metricId) {
+      if (useMemoryFallback || !db || !state.user) {
+        state.bodyMetrics = state.bodyMetrics.filter((m) => m.id !== metricId);
+        renderProgressView();
+        return;
+      }
+      const mRef = doc(db, 'artifacts', appId, 'users', state.user.uid, 'bodyMetrics', metricId);
+      await deleteDoc(mRef);
+    }
+
+    // CRUD: Save Goals
+    async function saveGoals(newGoals) {
+      state.goals = { ...state.goals, ...newGoals };
+      renderDashboard();
+
+      if (useMemoryFallback || !db || !state.user) return;
+      const profileRef = doc(db, 'artifacts', appId, 'users', state.user.uid, 'settings', 'profile');
+      await setDoc(profileRef, { goals: state.goals }, { merge: true });
+    }
+
+    // Clear Demo Data
+    async function clearDemoData() {
+      if (useMemoryFallback || !db || !state.user) {
+        state.workouts = state.workouts.filter((w) => !w.isDemo);
+        state.bodyMetrics = state.bodyMetrics.filter((m) => !m.isDemo);
+        state.hasDemoData = false;
+        renderAll();
+        showToast('Demo data cleared');
+        return;
+      }
+
+      try {
+        const uid = state.user.uid;
+        const demoWorkouts = state.workouts.filter((w) => w.isDemo);
+        const demoMetrics = state.bodyMetrics.filter((m) => m.isDemo);
+
+        for (const w of demoWorkouts) {
+          await deleteDoc(doc(db, 'artifacts', appId, 'users', uid, 'workouts', w.id));
+        }
+        for (const m of demoMetrics) {
+          await deleteDoc(doc(db, 'artifacts', appId, 'users', uid, 'bodyMetrics', m.id));
+        }
+        showToast('Sample demo data removed!');
+      } catch (err) {
+        console.error("Failed clearing demo data:", err);
+        showToast('Error clearing demo data', 'error');
+      }
+    }
+
+    // Re-populate Sample Data
+    async function populateSampleDataManual() {
+      const { sampleWorkouts, sampleMetrics } = generateSampleData();
+      if (useMemoryFallback || !db || !state.user) {
+        state.workouts = [...sampleWorkouts.map((w, i) => ({ id: `demo-${Date.now()}-${i}`, ...w })), ...state.workouts];
+        state.bodyMetrics = [...state.bodyMetrics, ...sampleMetrics.map((m, i) => ({ id: `demo-m-${Date.now()}-${i}`, ...m }))];
+        state.hasDemoData = true;
+        renderAll();
+        showToast('Sample data added');
+        return;
+      }
+
+      const uid = state.user.uid;
+      const workoutsCol = collection(db, 'artifacts', appId, 'users', uid, 'workouts');
+      for (const w of sampleWorkouts) {
+        await addDoc(workoutsCol, w);
+      }
+      const metricsCol = collection(db, 'artifacts', appId, 'users', uid, 'bodyMetrics');
+      for (const m of sampleMetrics) {
+        await addDoc(metricsCol, m);
+      }
+      showToast('Sample workouts & metrics added!');
+    }
+
+    // =========================================================================
+    // 6. AUTHENTICATION FLOW (GUEST / DEMO & GOOGLE SIGN-IN)
+    // =========================================================================
+    function updateUserUI() {
+      const name = state.profileName || 'Athlete';
+      const initials = name
+        .split(' ')
+        .map((n) => n[0])
+        .join('')
+        .toUpperCase()
+        .slice(0, 2) || 'AT';
+
+      const photoURL = state.user?.photoURL;
+
+      ['sidebar-avatar', 'mobile-profile-btn', 'settings-avatar'].forEach((id) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        if (photoURL) {
+          el.innerHTML = `<img src="${photoURL}" alt="${name}" class="w-full h-full object-cover" onerror="this.style.display='none'; this.parentElement.textContent='${initials}'" />`;
+        } else {
+          el.textContent = initials;
+        }
+      });
+
+      document.getElementById('sidebar-user-name').textContent = name;
+      document.getElementById('sidebar-user-role').textContent = state.isGuest ? 'Guest / Tester Mode' : 'Google Account';
+      document.getElementById('settings-user-name').textContent = name;
+      document.getElementById('settings-user-email').textContent = state.user?.email || 'Guest Tester Session';
+      document.getElementById('settings-user-id').textContent = state.user?.uid || 'local-demo-session';
+    }
+
+    async function enterAppWithUser(user, customName = null) {
+      state.user = user;
+      state.isGuest = user.isAnonymous;
+      if (customName && customName.trim()) {
+        state.profileName = customName.trim();
+      } else if (user.displayName) {
+        state.profileName = user.displayName;
+      } else {
+        state.profileName = `Tester #${user.uid.slice(0, 4).toUpperCase()}`;
+      }
+
+      document.getElementById('auth-screen').classList.add('hidden');
+      document.getElementById('app-shell').classList.remove('hidden');
+      updateUserUI();
+
+      await seedDemoDataIfNew(user.uid);
+      attachFirestoreListeners(user.uid);
+    }
+
+    // Guest / Demo Mode Login
+    document.getElementById('btn-guest-login').addEventListener('click', async () => {
+      const customName = document.getElementById('guest-name-input').value.trim();
+      const btn = document.getElementById('btn-guest-login');
+      btn.disabled = true;
+      btn.classList.add('opacity-75');
+
+      try {
+        if (useMemoryFallback || !auth) {
+          await enterAppWithUser({ uid: 'demo-' + Math.random().toString(36).slice(2, 8), isAnonymous: true }, customName || 'Demo Athlete');
+          showToast('Welcome to Demo Mode!');
+          return;
+        }
+
+        let userCred = null;
+        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+          userCred = await signInWithCustomToken(auth, __initial_auth_token);
+        } else {
+          userCred = await signInAnonymously(auth);
+        }
+
+        if (customName && userCred.user) {
+          try {
+            await updateProfile(userCred.user, { displayName: customName });
+          } catch (e) {}
+        }
+
+        await enterAppWithUser(userCred.user, customName);
+        showToast(`Welcome, ${state.profileName}!`);
+      } catch (err) {
+        console.error("Guest sign-in error:", err);
+        showToast('Could not connect to cloud auth, starting local session', 'info');
+        await enterAppWithUser({ uid: 'local-' + Date.now(), isAnonymous: true }, customName || 'Demo Athlete');
+      } finally {
+        btn.disabled = false;
+        btn.classList.remove('opacity-75');
+      }
+    });
+
+    // Google Sign-In
+    document.getElementById('btn-google-login').addEventListener('click', async () => {
+      if (useMemoryFallback || !auth) {
+        showToast('Google Sign-In unavailable in offline preview. Use Demo Mode!', 'info');
+        return;
+      }
+
+      try {
+        const provider = new GoogleAuthProvider();
+        const result = await signInWithPopup(auth, provider);
+        await enterAppWithUser(result.user);
+        showToast(`Signed in as ${result.user.displayName || 'Athlete'}`);
+      } catch (err) {
+        console.error("Google sign-in error:", err);
+        showToast('Google Sign-In was cancelled or blocked by iframe. Try Guest Mode!', 'info');
+      }
+    });
+
+    // Sign Out / Switch User
+    async function handleSwitchUser() {
+      const confirmed = await showConfirm('Switch User / Sign Out', 'Return to the welcome screen to switch profiles or start a fresh tester session?');
+      if (!confirmed) return;
+
+      clearListeners();
+      if (auth && !useMemoryFallback) {
+        try {
+          await signOut(auth);
+        } catch (e) {}
+      }
+      state.user = null;
+      state.workouts = [];
+      state.bodyMetrics = [];
+      document.getElementById('app-shell').classList.add('hidden');
+      document.getElementById('auth-screen').classList.remove('hidden');
+      document.getElementById('auth-status-text').textContent = 'Ready for next tester or Google account';
+    }
+
+    document.getElementById('btn-switch-user').addEventListener('click', handleSwitchUser);
+    document.getElementById('settings-signout-btn').addEventListener('click', handleSwitchUser);
+    document.getElementById('mobile-profile-btn').addEventListener('click', () => navigateTo('goals'));
+
+    // Check existing session on load
+    if (auth && !useMemoryFallback) {
+      document.getElementById('auth-status-text').textContent = 'Cloud sync ready • Choose Guest Demo or Google Sign-In';
+      onAuthStateChanged(auth, async (user) => {
+        if (user && !state.user) {
+          // If auto-signed in via environment token, keep auth screen available or enter directly if desired.
+          // Showing welcome screen lets testers enter their name or pick Google vs Guest cleanly.
+          document.getElementById('auth-status-text').textContent = 'Cloud session ready • Click below to begin';
+        }
+      });
+    } else {
+      document.getElementById('auth-status-text').textContent = 'Interactive Preview Mode Ready';
+    }
+
+    // =========================================================================
+    // 7. NAVIGATION & MODAL HANDLERS
+    // =========================================================================
+    function navigateTo(viewName) {
+      state.activeNav = viewName;
+      const views = ['dashboard', 'workouts', 'progress', 'goals'];
+      const titles = {
+        dashboard: 'Dashboard',
+        workouts: 'Workouts & History',
+        progress: 'Body & Progress',
+        goals: 'Goals & Settings'
+      };
+
+      views.forEach((v) => {
+        const el = document.getElementById(`view-${v}`);
+        if (el) el.classList.toggle('hidden', v !== viewName);
+      });
+
+      document.getElementById('page-title').textContent = titles[viewName] || 'Dashboard';
+
+      // Update sidebar & bottom nav active styles
+      document.querySelectorAll('.nav-btn').forEach((btn) => {
+        const target = btn.getAttribute('data-nav');
+        const isActive = target === viewName;
+        if (btn.closest('aside')) {
+          btn.className = isActive
+            ? 'nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition cursor-pointer bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+            : 'nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/70 transition cursor-pointer';
+        } else {
+          btn.className = isActive
+            ? 'nav-btn flex flex-col items-center justify-center py-1.5 rounded-xl text-emerald-500 font-bold text-[11px] gap-1 cursor-pointer'
+            : 'nav-btn flex flex-col items-center justify-center py-1.5 rounded-xl text-slate-500 dark:text-slate-400 font-semibold text-[11px] gap-1 cursor-pointer';
+        }
+      });
+
+      if (viewName === 'dashboard') renderWeeklyChart();
+      if (viewName === 'progress') renderWeightChart();
+    }
+
+    document.querySelectorAll('.nav-btn, .nav-jump-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const target = btn.getAttribute('data-nav');
+        if (target) navigateTo(target);
+      });
+    });
+
+    // Workout Modal Open / Close / Auto-Estimate Calories
+    const workoutModal = document.getElementById('workout-modal');
+    const wfType = document.getElementById('wf-type');
+    const wfDuration = document.getElementById('wf-duration');
+    const wfCalories = document.getElementById('wf-calories');
+    let manualCaloriesEdited = false;
+
+    function estimateCalories() {
+      if (manualCaloriesEdited) return;
+      const type = wfType.value;
+      const mins = parseFloat(wfDuration.value) || 0;
+      const intensityRadio = document.querySelector('input[name="wf-intensity"]:checked');
+      const intensity = intensityRadio ? intensityRadio.value : 'Moderate';
+      const rate = CALORIES_PER_MIN[type] || 6;
+      const mult = INTENSITY_MULTIPLIER[intensity] || 1;
+      wfCalories.value = Math.round(mins * rate * mult);
+    }
+
+    wfType.addEventListener('change', estimateCalories);
+    wfDuration.addEventListener('input', estimateCalories);
+    document.querySelectorAll('input[name="wf-intensity"]').forEach((r) => {
+      r.addEventListener('change', estimateCalories);
+    });
+    wfCalories.addEventListener('input', () => {
+      manualCaloriesEdited = true;
+    });
+
+    function openWorkoutModal(workoutToEdit = null) {
+      manualCaloriesEdited = Boolean(workoutToEdit);
+      document.getElementById('workout-modal-title').textContent = workoutToEdit ? 'Edit Workout' : 'Log Workout';
+      document.getElementById('workout-edit-id').value = workoutToEdit ? workoutToEdit.id : '';
+      wfType.value = workoutToEdit ? workoutToEdit.type : 'Running';
+      document.getElementById('wf-date').value = workoutToEdit ? workoutToEdit.date : getLocalDateStr();
+      wfDuration.value = workoutToEdit ? workoutToEdit.duration : 45;
+      wfCalories.value = workoutToEdit ? workoutToEdit.calories : 473;
+      document.getElementById('wf-notes').value = workoutToEdit ? (workoutToEdit.notes || '') : '';
+
+      const targetIntensity = workoutToEdit ? workoutToEdit.intensity : 'Moderate';
+      document.querySelectorAll('input[name="wf-intensity"]').forEach((r) => {
+        r.checked = r.value === targetIntensity;
+      });
+
+      if (!workoutToEdit) estimateCalories();
+      workoutModal.classList.remove('hidden');
+    }
+
+    function closeWorkoutModal() {
+      workoutModal.classList.add('hidden');
+    }
+
+    document.getElementById('sidebar-quick-log').addEventListener('click', () => openWorkoutModal());
+    document.getElementById('header-quick-log').addEventListener('click', () => openWorkoutModal());
+    document.getElementById('workouts-page-add-btn').addEventListener('click', () => openWorkoutModal());
+    document.getElementById('close-workout-modal').addEventListener('click', closeWorkoutModal);
+    document.getElementById('cancel-workout-modal').addEventListener('click', closeWorkoutModal);
+
+    // Submit Workout Form
+    document.getElementById('workout-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const editId = document.getElementById('workout-edit-id').value;
+      const intensityRadio = document.querySelector('input[name="wf-intensity"]:checked');
+
+      const workoutData = {
+        type: wfType.value,
+        date: document.getElementById('wf-date').value,
+        duration: parseInt(wfDuration.value, 10) || 0,
+        calories: parseInt(wfCalories.value, 10) || 0,
+        intensity: intensityRadio ? intensityRadio.value : 'Moderate',
+        notes: document.getElementById('wf-notes').value.trim(),
+        isDemo: false
+      };
+
+      closeWorkoutModal();
+      await saveWorkout(workoutData, editId);
+      showToast(editId ? 'Workout updated!' : `${workoutData.type} logged (+${workoutData.calories} kcal)!`);
+    });
+
+    // Quick Steps & Water buttons
+    document.querySelectorAll('.quick-step-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const inc = parseInt(btn.getAttribute('data-add-steps'), 10);
+        incrementDailyMetric('steps', inc);
+        showToast(`+${inc.toLocaleString()} steps added!`);
+      });
+    });
+
+    document.querySelectorAll('.quick-water-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const inc = parseInt(btn.getAttribute('data-add-water'), 10);
+        incrementDailyMetric('waterMl', inc);
+        showToast(`+${inc}ml water logged!`);
+      });
+    });
+
+    // Clear Demo Data & Settings buttons
+    document.getElementById('btn-clear-demo').addEventListener('click', async () => {
+      const ok = await showConfirm('Clear Sample Data', 'Remove all pre-populated demo workouts and body metrics?');
+      if (ok) await clearDemoData();
+    });
+
+    document.getElementById('btn-load-sample-again').addEventListener('click', populateSampleDataManual);
+
+    document.getElementById('btn-reset-today').addEventListener('click', async () => {
+      const todayStr = getLocalDateStr();
+      state.dailyLog = { date: todayStr, steps: 0, waterMl: 0 };
+      renderDashboard();
+      if (!useMemoryFallback && db && state.user) {
+        await setDoc(doc(db, 'artifacts', appId, 'users', state.user.uid, 'dailyLogs', todayStr), state.dailyLog);
+      }
+      showToast("Today's steps and water reset to 0");
+    });
+
+    // Body Metrics Form
+    document.getElementById('metric-date').value = getLocalDateStr();
+    document.getElementById('body-metric-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const date = document.getElementById('metric-date').value;
+      const weight = parseFloat(document.getElementById('metric-weight').value);
+      const bfVal = document.getElementById('metric-bodyfat').value;
+      const waistVal = document.getElementById('metric-waist').value;
+
+      if (!date || isNaN(weight)) return;
+
+      await saveBodyMetric({
+        date,
+        weight,
+        bodyFat: bfVal ? parseFloat(bfVal) : null,
+        waist: waistVal ? parseFloat(waistVal) : null,
+        isDemo: false
+      });
+
+      document.getElementById('metric-weight').value = '';
+      document.getElementById('metric-bodyfat').value = '';
+      document.getElementById('metric-waist').value = '';
+      showToast(`Logged ${weight} kg on ${date}`);
+    });
+
+    // Goals Form
+    document.getElementById('goals-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const newGoals = {
+        dailySteps: parseInt(document.getElementById('goal-steps').value, 10) || 10000,
+        dailyCalories: parseInt(document.getElementById('goal-calories').value, 10) || 600,
+        dailyWater: parseInt(document.getElementById('goal-water').value, 10) || 2500,
+        weeklyWorkouts: parseInt(document.getElementById('goal-weekly-workouts').value, 10) || 5
+      };
+      await saveGoals(newGoals);
+      showToast('Fitness goals updated!');
+    });
+
+    // Workout Search & Filter Listeners
+    document.getElementById('workout-search').addEventListener('input', renderWorkoutsList);
+    document.getElementById('workout-filter-type').addEventListener('change', renderWorkoutsList);
+    document.getElementById('workout-filter-intensity').addEventListener('change', renderWorkoutsList);
+
+    // Chart Metric Toggle
+    document.getElementById('chart-mode-calories').addEventListener('click', () => {
+      state.chartMetric = 'calories';
+      document.getElementById('chart-mode-calories').className = 'px-3 py-1.5 rounded-lg text-xs font-bold bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm transition cursor-pointer';
+      document.getElementById('chart-mode-minutes').className = 'px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-500 dark:text-slate-400 transition cursor-pointer';
+      renderWeeklyChart();
+    });
+
+    document.getElementById('chart-mode-minutes').addEventListener('click', () => {
+      state.chartMetric = 'minutes';
+      document.getElementById('chart-mode-minutes').className = 'px-3 py-1.5 rounded-lg text-xs font-bold bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm transition cursor-pointer';
+      document.getElementById('chart-mode-calories').className = 'px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-500 dark:text-slate-400 transition cursor-pointer';
+      renderWeeklyChart();
+    });
+
+    // =========================================================================
+    // 8. RENDERING FUNCTIONS & CHARTS
+    // =========================================================================
+    function calculateStreak(workouts) {
+      if (!workouts.length) return 0;
+      const activeDates = new Set(workouts.map((w) => w.date));
+      let streak = 0;
+      let checkOffset = 0;
+
+      // If no workout today yet, allow streak starting from yesterday
+      if (!activeDates.has(getDaysAgoStr(0)) && activeDates.has(getDaysAgoStr(1))) {
+        checkOffset = 1;
+      }
+
+      while (activeDates.has(getDaysAgoStr(checkOffset))) {
+        streak++;
+        checkOffset++;
+      }
+      return streak;
+    }
+
+    function renderDashboard() {
+      const todayStr = getLocalDateStr();
+      const todayWorkouts = state.workouts.filter((w) => w.date === todayStr);
+      const todayCalories = todayWorkouts.reduce((sum, w) => sum + (Number(w.calories) || 0), 0);
+      const todayMinutes = todayWorkouts.reduce((sum, w) => sum + (Number(w.duration) || 0), 0);
+
+      // Last 7 days workout count
+      const sevenDaysAgo = getDaysAgoStr(6);
+      const weeklyWorkoutsCount = state.workouts.filter((w) => w.date >= sevenDaysAgo && w.date <= todayStr).length;
+
+      // Steps
+      const steps = state.dailyLog.steps || 0;
+      const stepsGoal = state.goals.dailySteps || 10000;
+      document.getElementById('stat-steps-val').textContent = steps.toLocaleString();
+      document.getElementById('stat-steps-goal').textContent = `/ ${stepsGoal.toLocaleString()}`;
+      document.getElementById('stat-steps-bar').style.width = `${Math.min(100, Math.round((steps / stepsGoal) * 100))}%`;
+
+      // Calories
+      const calGoal = state.goals.dailyCalories || 600;
+      document.getElementById('stat-cal-val').textContent = todayCalories.toLocaleString();
+      document.getElementById('stat-cal-goal').textContent = `/ ${calGoal.toLocaleString()} kcal`;
+      document.getElementById('stat-cal-bar').style.width = `${Math.min(100, Math.round((todayCalories / calGoal) * 100))}%`;
+
+      // Minutes & Weekly Count
+      document.getElementById('stat-min-val').textContent = todayMinutes;
+      document.getElementById('stat-min-bar').style.width = `${Math.min(100, Math.round((todayMinutes / 60) * 100))}%`;
+      document.getElementById('stat-weekly-count').textContent = `${weeklyWorkoutsCount} / ${state.goals.weeklyWorkouts} weekly workouts`;
+
+      // Water
+      const water = state.dailyLog.waterMl || 0;
+      const waterGoal = state.goals.dailyWater || 2500;
+      document.getElementById('stat-water-val').textContent = water.toLocaleString();
+      document.getElementById('stat-water-goal').textContent = `/ ${waterGoal.toLocaleString()} ml`;
+      document.getElementById('stat-water-bar').style.width = `${Math.min(100, Math.round((water / waterGoal) * 100))}%`;
+
+      // Streaks & PRs
+      const streak = calculateStreak(state.workouts);
+      document.getElementById('streak-days-text').textContent = `${streak} ${streak === 1 ? 'Day' : 'Days'}`;
+
+      const maxCal = state.workouts.reduce((max, w) => Math.max(max, Number(w.calories) || 0), 0);
+      const maxDur = state.workouts.reduce((max, w) => Math.max(max, Number(w.duration) || 0), 0);
+      document.getElementById('pr-max-calories').textContent = `${maxCal.toLocaleString()} kcal`;
+      document.getElementById('pr-longest-session').textContent = `${maxDur} mins`;
+      document.getElementById('pr-total-workouts').textContent = `${state.workouts.length} sessions`;
+
+      // Demo Banner visibility
+      document.getElementById('demo-banner').classList.toggle('hidden', !state.hasDemoData);
+
+      // Recent workouts list (top 3)
+      const recentContainer = document.getElementById('dashboard-recent-list');
+      const recent = state.workouts.slice(0, 3);
+      if (!recent.length) {
+        recentContainer.innerHTML = `<p class="py-6 text-center text-sm text-slate-500 dark:text-slate-400">No workouts logged yet. Click <strong>Log Workout</strong> to record your first session!</p>`;
+      } else {
+        recentContainer.innerHTML = recent.map((w) => `
+          <div class="py-3.5 flex items-center justify-between gap-4">
+            <div class="flex items-center gap-3.5 min-w-0">
+              <div class="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-lg shrink-0">
+                ${WORKOUT_ICONS[w.type] || '🎯'}
+              </div>
+              <div class="min-w-0">
+                <div class="flex items-center gap-2">
+                  <p class="text-sm font-bold truncate">${w.type}</p>
+                  <span class="px-2 py-0.5 rounded-md text-[10px] font-bold ${
+                    w.intensity === 'High' ? 'bg-rose-500/10 text-rose-500' :
+                    w.intensity === 'Moderate' ? 'bg-amber-500/10 text-amber-500' :
+                    'bg-emerald-500/10 text-emerald-500'
+                  }">${w.intensity}</span>
+                </div>
+                <p class="text-xs text-slate-500 dark:text-slate-400 truncate">${w.date}${w.notes ? ' • ' + w.notes : ''}</p>
+              </div>
+            </div>
+            <div class="text-right shrink-0">
+              <p class="text-sm font-extrabold text-emerald-500">${w.calories} kcal</p>
+              <p class="text-xs text-slate-500 dark:text-slate-400">${w.duration} mins</p>
+            </div>
+          </div>
+        `).join('');
+      }
+
+      renderWeeklyChart();
+    }
+
+    function renderWorkoutsList() {
+      const search = document.getElementById('workout-search').value.toLowerCase().trim();
+      const typeFilter = document.getElementById('workout-filter-type').value;
+      const intensityFilter = document.getElementById('workout-filter-intensity').value;
+
+      const filtered = state.workouts.filter((w) => {
+        const matchesType = typeFilter === 'ALL' || w.type === typeFilter;
+        const matchesIntensity = intensityFilter === 'ALL' || w.intensity === intensityFilter;
+        const matchesSearch = !search ||
+          w.type.toLowerCase().includes(search) ||
+          (w.notes && w.notes.toLowerCase().includes(search)) ||
+          w.date.includes(search);
+        return matchesType && matchesIntensity && matchesSearch;
+      });
+
+      const container = document.getElementById('workout-history-list');
+      if (!filtered.length) {
+        container.innerHTML = `
+          <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-10 text-center space-y-2">
+            <p class="text-base font-bold">No matching workouts found</p>
+            <p class="text-xs text-slate-500 dark:text-slate-400">Try adjusting your filters or log a new training session.</p>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = filtered.map((w) => `
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 sm:p-5 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:border-emerald-500/40 transition">
+          <div class="flex items-start sm:items-center gap-4 min-w-0">
+            <div class="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-2xl shrink-0">
+              ${WORKOUT_ICONS[w.type] || '🎯'}
+            </div>
+            <div class="min-w-0 space-y-1">
+              <div class="flex flex-wrap items-center gap-2">
+                <h3 class="text-base font-bold">${w.type}</h3>
+                <span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
+                  w.intensity === 'High' ? 'bg-rose-500/10 text-rose-500' :
+                  w.intensity === 'Moderate' ? 'bg-amber-500/10 text-amber-500' :
+                  'bg-emerald-500/10 text-emerald-500'
+                }">${w.intensity} Intensity</span>
+                ${w.isDemo ? '<span class="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-slate-200 dark:bg-slate-800 text-slate-500">Demo</span>' : ''}
+              </div>
+              <p class="text-xs text-slate-500 dark:text-slate-400">${w.date} • ${w.duration} minutes • ${w.calories} kcal</p>
+              ${w.notes ? `<p class="text-xs text-slate-600 dark:text-slate-300 pt-0.5">${w.notes}</p>` : ''}
+            </div>
+          </div>
+
+          <div class="flex items-center justify-between sm:justify-end gap-3 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100 dark:border-slate-800">
+            <div class="text-left sm:text-right mr-2">
+              <p class="text-base font-extrabold text-emerald-500">${w.calories} kcal</p>
+              <p class="text-xs font-semibold text-slate-400">${w.duration} min</p>
+            </div>
+            <button data-edit-workout="${w.id}" type="button" title="Edit Workout" class="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-emerald-500/15 hover:text-emerald-500 transition cursor-pointer">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+            </button>
+            <button data-delete-workout="${w.id}" type="button" title="Delete Workout" class="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-rose-500/15 hover:text-rose-500 transition cursor-pointer">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+            </button>
+          </div>
+        </div>
+      `).join('');
+
+      // Bind Edit & Delete handlers
+      container.querySelectorAll('[data-edit-workout]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const id = btn.getAttribute('data-edit-workout');
+          const found = state.workouts.find((w) => w.id === id);
+          if (found) openWorkoutModal(found);
+        });
+      });
+
+      container.querySelectorAll('[data-delete-workout]').forEach((btn) => {
+        btn.addEventListener('click', async () => {
+          const id = btn.getAttribute('data-delete-workout');
+          const ok = await showConfirm('Delete Workout', 'Are you sure you want to permanently remove this workout?');
+          if (ok) {
+            await deleteWorkout(id);
+            showToast('Workout deleted');
+          }
+        });
+      });
+    }
+
+    function renderProgressView() {
+      const tbody = document.getElementById('body-metrics-table-body');
+      const latestBadge = document.getElementById('latest-weight-badge');
+
+      if (!state.bodyMetrics.length) {
+        latestBadge.textContent = 'Latest: —';
+        tbody.innerHTML = `<tr><td colspan="5" class="py-6 text-center text-sm text-slate-500 dark:text-slate-400">No body measurements logged yet.</td></tr>`;
+      } else {
+        const latest = state.bodyMetrics[state.bodyMetrics.length - 1];
+        latestBadge.textContent = `Latest: ${latest.weight} kg`;
+
+        const reversed = [...state.bodyMetrics].reverse();
+        tbody.innerHTML = reversed.map((m) => `
+          <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/40">
+            <td class="py-3 px-3 font-medium">${m.date}</td>
+            <td class="py-3 px-3 font-bold text-emerald-500">${m.weight} kg</td>
+            <td class="py-3 px-3 text-slate-500 dark:text-slate-400">${m.bodyFat != null ? m.bodyFat + '%' : '—'}</td>
+            <td class="py-3 px-3 text-slate-500 dark:text-slate-400">${m.waist != null ? m.waist + ' cm' : '—'}</td>
+            <td class="py-3 px-3 text-right">
+              <button data-delete-metric="${m.id}" type="button" class="p-1.5 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 transition cursor-pointer">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+              </button>
+            </td>
+          </tr>
+        `).join('');
+
+        tbody.querySelectorAll('[data-delete-metric]').forEach((btn) => {
+          btn.addEventListener('click', async () => {
+            const id = btn.getAttribute('data-delete-metric');
+            await deleteBodyMetric(id);
+            showToast('Measurement removed');
+          });
+        });
+      }
+
+      renderWeightChart();
+    }
+
+    function renderGoalsForm() {
+      document.getElementById('goal-steps').value = state.goals.dailySteps;
+      document.getElementById('goal-calories').value = state.goals.dailyCalories;
+      document.getElementById('goal-water').value = state.goals.dailyWater;
+      document.getElementById('goal-weekly-workouts').value = state.goals.weeklyWorkouts;
+    }
+
+    // =========================================================================
+    // 9. CHART.JS VISUALIZATIONS
+    // =========================================================================
+    function getChartColors() {
+      const isDark = document.documentElement.classList.contains('dark');
+      return {
+        text: isDark ? '#94a3b8' : '#64748b',
+        grid: isDark ? 'rgba(148, 163, 184, 0.1)' : 'rgba(148, 163, 184, 0.2)',
+        accent: '#10b981',
+        accentFill: 'rgba(16, 185, 129, 0.18)'
+      };
+    }
+
+    function renderWeeklyChart() {
+      const canvas = document.getElementById('weekly-activity-chart');
+      if (!canvas || typeof Chart === 'undefined') return;
+
+      const labels = [];
+      const values = [];
+      const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+      for (let i = 6; i >= 0; i--) {
+        const dStr = getDaysAgoStr(i);
+        const dObj = new Date(dStr + 'T12:00:00');
+        labels.push(i === 0 ? 'Today' : dayNames[dObj.getDay()]);
+
+        const dayWorkouts = state.workouts.filter((w) => w.date === dStr);
+        const total = dayWorkouts.reduce((sum, w) => {
+          return sum + (state.chartMetric === 'calories' ? (Number(w.calories) || 0) : (Number(w.duration) || 0));
+        }, 0);
+        values.push(total);
+      }
+
+      const colors = getChartColors();
+      if (state.charts.weekly) {
+        state.charts.weekly.destroy();
+      }
+
+      state.charts.weekly = new Chart(canvas, {
+        type: 'bar',
+        data: {
+          labels,
+          datasets: [{
+            label: state.chartMetric === 'calories' ? 'Calories (kcal)' : 'Duration (mins)',
+            data: values,
+            backgroundColor: '#10b981',
+            hoverBackgroundColor: '#34d399',
+            borderRadius: 8,
+            maxBarThickness: 36
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: '#0f172a',
+              titleColor: '#f8fafc',
+              bodyColor: '#34d399',
+              padding: 10,
+              cornerRadius: 10
+            }
+          },
+          scales: {
+            x: {
+              grid: { display: false },
+              ticks: { color: colors.text, font: { family: 'Inter', size: 11, weight: '600' } }
+            },
+            y: {
+              beginAtZero: true,
+              grid: { color: colors.grid },
+              ticks: { color: colors.text, font: { family: 'Inter', size: 11 } }
+            }
+          }
+        }
+      });
+    }
+
+    function renderWeightChart() {
+      const canvas = document.getElementById('weight-trend-chart');
+      if (!canvas || typeof Chart === 'undefined') return;
+
+      const labels = state.bodyMetrics.map((m) => m.date.slice(5)); // MM-DD
+      const weights = state.bodyMetrics.map((m) => m.weight);
+      const colors = getChartColors();
+
+      if (state.charts.weight) {
+        state.charts.weight.destroy();
+      }
+
+      state.charts.weight = new Chart(canvas, {
+        type: 'line',
+        data: {
+          labels: labels.length ? labels : ['No Data'],
+          datasets: [{
+            label: 'Weight (kg)',
+            data: weights.length ? weights : [0],
+            borderColor: colors.accent,
+            backgroundColor: colors.accentFill,
+            borderWidth: 3,
+            pointBackgroundColor: '#10b981',
+            pointRadius: 5,
+            tension: 0.35,
+            fill: true
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false }
+          },
+          scales: {
+            x: {
+              grid: { display: false },
+              ticks: { color: colors.text, font: { family: 'Inter', size: 11 } }
+            },
+            y: {
+              grid: { color: colors.grid },
+              ticks: { color: colors.text, font: { family: 'Inter', size: 11 } }
+            }
+          }
+        }
+      });
+    }
+
+    function updateChartsTheme() {
+      if (state.activeNav === 'dashboard') renderWeeklyChart();
+      if (state.activeNav === 'progress') renderWeightChart();
+    }
+
+    function renderAll() {
+      renderDashboard();
+      renderWorkoutsList();
+      renderProgressView();
+      renderGoalsForm();
+    }
+
+    // Set formatted header date on startup
+    document.getElementById('header-date').textContent = new Date().toLocaleDateString('en-US', {
+      weekday: 'long',
+      month: 'short',
+      day: 'numeric'
+    });
+  </script>
+</body>
+</html>
